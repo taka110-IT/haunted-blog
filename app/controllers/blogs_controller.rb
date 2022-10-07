@@ -45,25 +45,17 @@ class BlogsController < ApplicationController
   private
 
   def set_blog
-    @blog = if Blog.find(params[:id]).secret == false
-              Blog.find(params[:id])
-            elsif user_signed_in?
-              current_user.blogs.find(params[:id])
-            else
-              raise ActiveRecord::RecordNotFound
-            end
+    @blog = Blog.find(params[:id])
+    raise ActiveRecord::RecordNotFound if @blog.secret == true && (!user_signed_in? || @blog.user_id != current_user.id)
   end
 
   def set_current_user_blog
-    @blog = current_user.blogs.find(params[:id]) if current_user.blogs.find(params[:id]).present?
+    @blog = current_user.blogs.find(params[:id])
   end
 
   def blog_params
     permit_items = %i[title content secret]
-    if current_user.premium?
-      params.require(:blog).permit(permit_items, :random_eyecatch)
-    else
-      params.require(:blog).permit(permit_items)
-    end
+    permit_items.push(:random_eyecatch) if current_user.premium?
+    params.require(:blog).permit(permit_items)
   end
 end
